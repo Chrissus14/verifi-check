@@ -36,6 +36,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   vehicleSchema,
+  type Vehicle,
   type VehicleFormValues,
   type BrandRule,
 } from "@/types/vehicle";
