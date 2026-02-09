@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, signup } from '@/app/login/actions'
+import { login } from '@/app/login/actions'
 import { cn } from '@/lib/utils'
 
 const authSchema = z.object({
@@ -28,10 +28,8 @@ const authSchema = z.object({
 type AuthValues = z.infer<typeof authSchema>
 
 export function AuthForm({ className }: { className?: string }) {
-  const [isLogin, setIsLogin] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   const {
     register,
@@ -49,8 +47,7 @@ export function AuthForm({ className }: { className?: string }) {
     formData.append('password', data.password)
 
     try {
-      const action = isLogin ? login : signup
-      const result = await action(formData)
+      const result = await login(formData)
 
       // If we're here and result is undefined, it means redirect happened (good)
       // If result has error, we show it
@@ -62,7 +59,7 @@ export function AuthForm({ className }: { className?: string }) {
       if (result?.error) {
         setError(result.error)
       }
-    } catch (e) {
+    } catch {
       // It's likely the redirect error, so we ignore or let it bubble?
       // Actually redirect() in Next.js throws an error.
       // But passing it from server action to client:
@@ -76,11 +73,9 @@ export function AuthForm({ className }: { className?: string }) {
     <div className={cn("flex flex-col gap-6", className)}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</CardTitle>
+          <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
           <CardDescription>
-            {isLogin
-              ? 'Ingresa tus credenciales para acceder'
-              : 'Crea una cuenta para empezar a registrar autos'}
+            Ingresa tus credenciales para acceder
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,18 +111,8 @@ export function AuthForm({ className }: { className?: string }) {
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLogin ? 'Ingresar' : 'Crear Cuenta'}
+                Ingresar
               </Button>
-            </div>
-            <div className="mt-4 text-center text-sm">
-              {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-              <button
-                type="button"
-                className="underline underline-offset-4"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                {isLogin ? 'Regístrate' : 'Inicia Sesión'}
-              </button>
             </div>
           </form>
         </CardContent>
