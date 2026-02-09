@@ -1,6 +1,7 @@
-import { Car, LogOut } from "lucide-react"
+import { Car } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { signOut } from "@/app/actions/auth"
 
 export default async function DashboardLayout({
   children,
@@ -30,8 +31,7 @@ export default async function DashboardLayout({
             <span className="text-xs text-muted-foreground hidden sm:inline-block">
                 {user.email}
             </span>
-            <form action="/auth/signout" method="post">
-                 {/* We need a signout endpoint or action */}
+            <form action={signOut}>
                  <button className="text-sm font-medium hover:underline">
                     Salir
                  </button>
