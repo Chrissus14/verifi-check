@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Verifi-Check 🚗 ✅
 
-## Getting Started
+**Verifi-Check** es una aplicación web moderna diseñada para gestionar y optimizar los registros de verificación vehicular. El objetivo principal es ayudar a los usuarios (o verificentros) a mantener un control preciso de las pruebas realizadas, automatizando sugerencias inteligentes basadas en la marca y submarca del vehículo.
 
-First, run the development server:
+## 🚀 Funcionalidades Principales
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 1. Registro de Vehículos
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Captura de datos esenciales como marca, submarca, año del modelo y tipo de prueba necesaria.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Reglas Inteligentes (Smart Rules)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+La aplicación cuenta con una lógica predefinida que sugiere automáticamente el **Tipo de Prueba** (Dinámica o Estática) al ingresar la marca y submarca:
 
-## Learn More
+- **Prueba Estática**: Sugerida para marcas de alto rendimiento o sistemas de tracción total (ej. Porsche, Ferrari, Audi AWD).
+- **Prueba Dinámica**: Sugerida por defecto para la mayoría de los vehículos comerciales.
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Personalización por Usuario (Brand Rules)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Los usuarios pueden definir sus propias reglas. Si un usuario marca un vehículo como "Estática" y elige "Guardar como regla", la aplicación recordará esta preferencia para todos los vehículos futuros de esa marca para ese usuario específico, priorizándola sobre las reglas generales.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Gestión con Supabase
 
-## Deploy on Vercel
+Integración completa con Supabase para:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Autenticación de usuarios.
+- Almacenamiento persistente de vehículos.
+- Sincronización de reglas personalizadas en tiempo real.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Stack Tecnológico
+
+- **Frontend**: [Next.js](https://nextjs.org/) (App Router)
+- **Base de Datos & Auth**: [Supabase](https://supabase.com/)
+- **Estilizado**: [Tailwind CSS](https://tailwindcss.com/)
+- **Componentes**: [shadcn/ui](https://ui.shadcn.com/)
+- **Validación**: [Zod](https://zod.dev/) & [React Hook Form](https://react-hook-form.com/)
+
+## 🏁 Inicio Rápido
+
+1. Clona el repositorio.
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Configura tus variables de entorno para Supabase (`.env.local`).
+4. Inicia el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
