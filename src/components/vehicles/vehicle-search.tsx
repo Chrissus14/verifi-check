@@ -25,11 +25,11 @@ export function VehicleSearch() {
   }
 
   return (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <div className="relative group">
+      <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
       <Input
-        placeholder="Buscar por marca o submarca..."
-        className="pl-9 h-11"
+        placeholder="Buscar vehículo..."
+        className="pl-11 h-12 bg-card border-none shadow-sm shadow-black/5 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground/60"
         defaultValue={searchParams.get('q')?.toString()}
         onChange={(e) => handleSearch(e.target.value)}
       />
