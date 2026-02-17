@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Resolver } from "react-hook-form";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -40,8 +40,9 @@ import {
   type VehicleFormValues,
   type BrandRule,
 } from "@/types/vehicle";
-import { SMART_RULES } from "@/lib/constants";
+import { SMART_RULES, VEHICLE_BRANDS, COMMON_MODELS } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 
 interface VehicleFormProps {
   editingVehicle?: Vehicle | null;
@@ -56,7 +57,7 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
   const supabase = createClient();
 
   const form = useForm<VehicleFormValues>({
-    resolver: zodResolver(vehicleSchema) as any,
+    resolver: zodResolver(vehicleSchema) as Resolver<VehicleFormValues>,
     defaultValues: {
       brand: "",
       sub_brand: "",
@@ -101,7 +102,7 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("brand_rules")
         .select("*")
         .eq("user_id", user.id);
@@ -255,11 +256,18 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
                   control={form.control}
                   name="brand"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Marca</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej. Renault" {...field} />
-                      </FormControl>
+                      <Combobox
+                        options={VEHICLE_BRANDS.map(b => ({ label: b, value: b }))}
+                        value={field.value}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          // Clear sub_brand when brand changes
+                          form.setValue("sub_brand", "");
+                        }}
+                        placeholder="Buscar marca..."
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -267,15 +275,31 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
                 <FormField
                   control={form.control}
                   name="sub_brand"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Submarca</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej. Kwid" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const brand = form.watch("brand");
+                    const suggestions = brand && COMMON_MODELS[brand]
+                      ? COMMON_MODELS[brand].map(m => ({ label: m, value: m }))
+                      : [];
+
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Submarca</FormLabel>
+                        {suggestions.length > 0 ? (
+                          <Combobox
+                            options={suggestions}
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Buscar submarca..."
+                          />
+                        ) : (
+                          <FormControl>
+                            <Input placeholder="Ej. Kwid" {...field} />
+                          </FormControl>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   control={form.control}
