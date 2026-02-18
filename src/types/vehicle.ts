@@ -20,6 +20,14 @@ export interface BrandRule {
   created_at: string;
 }
 
+export interface VehicleCatalogEntry {
+  id: string;
+  user_id: string;
+  brand: string;
+  sub_brand: string;
+  created_at: string;
+}
+
 export const vehicleSchema = z.object({
   brand: z.string().min(1, "Marca es requerida"),
   sub_brand: z.string().min(1, "Submarca es requerida"),

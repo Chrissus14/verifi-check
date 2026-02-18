@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ interface ComboboxProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  allowCreate?: boolean;
 }
 
 export function Combobox({
@@ -37,8 +38,43 @@ export function Combobox({
   emptyMessage = "No se encontraron resultados.",
   className,
   disabled,
+  allowCreate = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
+
+  // Normalize for comparison
+  const normalize = (s: string) => s.trim().toLowerCase();
+
+  const toTitleCase = (str: string) => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  const exactMatch = options.some(
+    (o) => normalize(o.value) === normalize(inputValue)
+  );
+
+  const showCreateOption =
+    allowCreate && inputValue.trim().length > 0 && !exactMatch;
+
+  const handleSelect = (selectedValue: string) => {
+    onChange(selectedValue === value ? "" : selectedValue);
+    setInputValue("");
+    setOpen(false);
+  };
+
+  const handleCreate = () => {
+    const newValue = toTitleCase(inputValue);
+    if (newValue) {
+      onChange(newValue);
+      setInputValue("");
+      setOpen(false);
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -61,7 +97,11 @@ export function Combobox({
         align="start"
       >
         <Command>
-          <CommandInput placeholder={placeholder} />
+          <CommandInput
+            placeholder={placeholder}
+            value={inputValue}
+            onValueChange={setInputValue}
+          />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
@@ -69,10 +109,7 @@ export function Combobox({
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue);
-                    setOpen(false);
-                  }}
+                  onSelect={handleSelect}
                 >
                   <Check
                     className={cn(
@@ -83,6 +120,16 @@ export function Combobox({
                   {option.label}
                 </CommandItem>
               ))}
+              {showCreateOption && (
+                <CommandItem
+                  value={`__create__${inputValue}`}
+                  onSelect={handleCreate}
+                  className="text-primary"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Agregar &quot;{inputValue.trim()}&quot;
+                </CommandItem>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

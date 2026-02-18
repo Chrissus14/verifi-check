@@ -39,8 +39,8 @@ import {
   type Vehicle,
   type VehicleFormValues,
   type BrandRule,
+  type VehicleCatalogEntry,
 } from "@/types/vehicle";
-import { SMART_RULES, VEHICLE_BRANDS, COMMON_MODELS } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -53,6 +53,7 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [brandRules, setBrandRules] = useState<BrandRule[]>([]);
+  const [catalog, setCatalog] = useState<VehicleCatalogEntry[]>([]);
   const router = useRouter();
   const supabase = createClient();
 
@@ -94,24 +95,25 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
     }
   }, [open, editingVehicle, form]);
 
-  // Fetch user brand rules
+  // Fetch user brand rules and catalog
   useEffect(() => {
-    async function fetchRules() {
+    async function fetchData() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
-        .from("brand_rules")
-        .select("*")
-        .eq("user_id", user.id);
+      const [{ data: rules }, { data: catalogData }] = await Promise.all([
+        supabase.from("brand_rules").select("*").eq("user_id", user.id),
+        supabase.from("vehicle_catalog").select("*").eq("user_id", user.id),
+      ]);
 
-      if (data) setBrandRules(data);
+      if (rules) setBrandRules(rules);
+      if (catalogData) setCatalog(catalogData);
     }
 
     if (open) {
-      fetchRules();
+      fetchData();
     }
   }, [open, supabase]);
 
@@ -132,30 +134,37 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
         return;
       }
 
-      // 2. Fallback to predefined SMART_RULES
-      let rule = SMART_RULES.find(
-        (r) =>
-          r.brand.toLowerCase() === watchedBrand.toLowerCase() &&
-          r.sub_brand?.toLowerCase() === watchedSubBrand?.toLowerCase(),
-      );
-
-      if (!rule) {
-        rule = SMART_RULES.find(
-          (r) =>
-            r.brand.toLowerCase() === watchedBrand.toLowerCase() &&
-            r.sub_brand === undefined,
-        );
-      }
-
-      if (rule) {
-        form.setValue("test_type", rule.type);
-      }
+      // 2. No automatic fallback to predefined rules as per "exclusively user data" requirement
     }
   }, [watchedBrand, watchedSubBrand, form, brandRules, editingVehicle]);
 
-  async function onSubmit(data: VehicleFormValues) {
+  // Helper for Title Case formatting
+  const toTitleCase = (str: string) => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  // Build brand options: exclusively from user catalog
+  const catalogBrands = [...new Set(catalog.map((c) => c.brand))].sort();
+  const brandOptions = catalogBrands.map((b) => ({ label: b, value: b }));
+
+  // Build sub-brand options: exclusively from user catalog for the selected brand
+  const catalogSubBrands = catalog
+    .filter((c) => c.brand.toLowerCase() === watchedBrand?.toLowerCase())
+    .map((c) => c.sub_brand)
+    .sort();
+  const subBrandOptions = catalogSubBrands.map((m) => ({ label: m, value: m }));
+
+  async function onSubmit(values: VehicleFormValues) {
     setLoading(true);
     try {
+      // Defensive Title Case formatting
+      const brand = toTitleCase(values.brand);
+      const sub_brand = toTitleCase(values.sub_brand);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -167,10 +176,10 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
         const { error: vehicleError } = await supabase
           .from("vehicles")
           .update({
-            brand: data.brand,
-            sub_brand: data.sub_brand,
-            model_year: data.model_year,
-            test_type: data.test_type,
+            brand,
+            sub_brand,
+            model_year: values.model_year,
+            test_type: values.test_type,
           })
           .eq("id", editingVehicle.id);
 
@@ -178,23 +187,35 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
       } else {
         // Create vehicle
         const { error: vehicleError } = await supabase.from("vehicles").insert({
-          brand: data.brand,
-          sub_brand: data.sub_brand,
-          model_year: data.model_year,
-          test_type: data.test_type,
+          brand,
+          sub_brand,
+          model_year: values.model_year,
+          test_type: values.test_type,
           user_id: user.id,
         });
 
         if (vehicleError) throw vehicleError;
       }
 
+      // Always UPSERT to catalog (it will handle duplicates via UNIQUE constraint)
+      const { error: catalogError } = await supabase.from("vehicle_catalog").upsert(
+        {
+          user_id: user.id,
+          brand,
+          sub_brand,
+        },
+        { onConflict: "user_id,brand,sub_brand" },
+      );
+
+      if (catalogError) console.error("Error updating catalog:", catalogError);
+
       // Save brand rule if requested
-      if (data.save_as_rule) {
+      if (values.save_as_rule) {
         const { error: ruleError } = await supabase.from("brand_rules").upsert(
           {
             user_id: user.id,
-            brand: data.brand,
-            test_type: data.test_type,
+            brand,
+            test_type: values.test_type,
           },
           { onConflict: "user_id,brand" },
         );
@@ -259,14 +280,15 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
                     <FormItem className="flex flex-col">
                       <FormLabel>Marca</FormLabel>
                       <Combobox
-                        options={VEHICLE_BRANDS.map(b => ({ label: b, value: b }))}
+                        options={brandOptions}
                         value={field.value}
                         onChange={(val) => {
                           field.onChange(val);
                           // Clear sub_brand when brand changes
                           form.setValue("sub_brand", "");
                         }}
-                        placeholder="Buscar marca..."
+                        placeholder="Buscar o agregar marca..."
+                        allowCreate
                       />
                       <FormMessage />
                     </FormItem>
@@ -275,31 +297,24 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
                 <FormField
                   control={form.control}
                   name="sub_brand"
-                  render={({ field }) => {
-                    const brand = form.watch("brand");
-                    const suggestions = brand && COMMON_MODELS[brand]
-                      ? COMMON_MODELS[brand].map(m => ({ label: m, value: m }))
-                      : [];
-
-                    return (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Submarca</FormLabel>
-                        {suggestions.length > 0 ? (
-                          <Combobox
-                            options={suggestions}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Buscar submarca..."
-                          />
-                        ) : (
-                          <FormControl>
-                            <Input placeholder="Ej. Kwid" {...field} />
-                          </FormControl>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Submarca</FormLabel>
+                      <Combobox
+                        options={subBrandOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={
+                          watchedBrand
+                            ? "Buscar o agregar submarca..."
+                            : "Primero selecciona una marca"
+                        }
+                        disabled={!watchedBrand}
+                        allowCreate
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
                   control={form.control}
