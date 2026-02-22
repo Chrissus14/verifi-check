@@ -7,30 +7,32 @@ interface DashboardPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const supabase = await createClient()
-  const { q } = await searchParams
+  const { q, page, size } = await searchParams
   const searchQuery = typeof q === 'string' ? q : undefined
+  const currentPage = typeof page === 'string' ? parseInt(page, 10) : 1
+  const pageSize = typeof size === 'string' && PAGE_SIZE_OPTIONS.includes(parseInt(size, 10)) 
+    ? parseInt(size, 10) 
+    : 20
+  const offset = (currentPage - 1) * pageSize
 
-  // Fetch vehicles for today
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  let query = supabase
+  let baseQuery = supabase
     .from('vehicles')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .select('*', { count: 'exact' })
 
   if (searchQuery) {
-    // If searching, we might want to show results beyond just today?
-    // Or still filter by today? Usually search implies broader scope.
-    // Let's search in all records if there is a query, otherwise just today.
-    query = query.or(`brand.ilike.%${searchQuery}%,sub_brand.ilike.%${searchQuery}%`)
-  } else {
-    query = query.gte('created_at', today.toISOString())
+    baseQuery = baseQuery.or(`brand.ilike.%${searchQuery}%,sub_brand.ilike.%${searchQuery}%`)
   }
 
-  const { data: vehicles } = await query
+  const { data: vehicles, count } = await baseQuery
+    .order('created_at', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+
+  const totalCount = count || 0
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
     <div className="flex flex-col gap-8">
@@ -38,10 +40,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {searchQuery ? `Resultados para "${searchQuery}"` : 'Registros de Hoy'}
+              {searchQuery ? `Resultados para "${searchQuery}"` : 'Historial de Vehículos'}
             </h1>
             <p className="text-muted-foreground font-medium">
-              Dashboard de verificación de vehículos • <span className="text-primary">{vehicles?.length || 0} registros activos</span>
+              Dashboard de verificación de vehículos • <span className="text-primary">{totalCount} registros en total</span>
             </p>
           </div>
           <div className="w-full md:w-80">
@@ -56,7 +58,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             Listado General
           </Badge>
         </div>
-        <VehicleListManager initialVehicles={vehicles || []} />
+        <VehicleListManager 
+          initialVehicles={vehicles || []} 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+        />
       </div>
     </div>
   )

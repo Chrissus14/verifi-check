@@ -15,8 +15,10 @@ export function VehicleSearch() {
     const params = new URLSearchParams(searchParams)
     if (term) {
       params.set('q', term)
+      params.set('page', '1')
     } else {
       params.delete('q')
+      params.delete('page')
     }
 
     startTransition(() => {

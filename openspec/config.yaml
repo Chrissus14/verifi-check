@@ -1,0 +1,30 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript (strict), Supabase (auth/DB), Tailwind CSS v4, shadcn/ui
+  Architecture: Server Actions for mutations, React Hook Form + Zod for validation
+  Style: ESLint v9, Prettier, @/* path alias to ./src/*
+  Testing: None configured (per project guidelines)
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Use Spanish for user-facing error messages
+  verify:
+    - Run lint (npm run lint) to verify code quality
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
