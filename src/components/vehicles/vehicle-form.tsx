@@ -40,6 +40,7 @@ import {
   type VehicleFormValues,
   type BrandRule,
   type VehicleCatalogEntry,
+  type VehicleType,
 } from "@/types/vehicle";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
@@ -64,6 +65,8 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
       sub_brand: "",
       model_year: new Date().getFullYear(),
       test_type: "Dinámica",
+      vehicle_type: undefined,
+      traction: undefined,
       save_as_rule: false,
     },
   });
@@ -76,6 +79,8 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
         sub_brand: editingVehicle.sub_brand,
         model_year: editingVehicle.model_year,
         test_type: editingVehicle.test_type,
+        vehicle_type: editingVehicle.vehicle_type ?? undefined,
+        traction: editingVehicle.traction ?? undefined,
         save_as_rule: false,
       });
       setOpen(true);
@@ -90,6 +95,8 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
         sub_brand: "",
         model_year: new Date().getFullYear(),
         test_type: "Dinámica",
+        vehicle_type: undefined,
+        traction: undefined,
         save_as_rule: false,
       });
     }
@@ -120,6 +127,9 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
   // Smart Logic
   const watchedBrand = form.watch("brand");
   const watchedSubBrand = form.watch("sub_brand");
+  const watchedVehicleType = form.watch("vehicle_type");
+
+  const showTraction = watchedVehicleType === "automóvil" || watchedVehicleType === "camioneta";
 
   useEffect(() => {
     if (watchedBrand && !editingVehicle) {
@@ -180,6 +190,8 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
             sub_brand,
             model_year: values.model_year,
             test_type: values.test_type,
+            vehicle_type: values.vehicle_type ?? null,
+            traction: showTraction ? values.traction : null,
           })
           .eq("id", editingVehicle.id);
 
@@ -191,6 +203,8 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
           sub_brand,
           model_year: values.model_year,
           test_type: values.test_type,
+          vehicle_type: values.vehicle_type ?? null,
+          traction: showTraction ? values.traction : null,
           user_id: user.id,
         });
 
@@ -354,6 +368,68 @@ export function VehicleForm({ editingVehicle, onSuccess }: VehicleFormProps) {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="vehicle_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Vehículo</FormLabel>
+                      <Select
+                        onValueChange={(val) => {
+                          field.onChange(val as VehicleType);
+                          if (val !== "automóvil" && val !== "camioneta") {
+                            form.setValue("traction", undefined);
+                          }
+                        }}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona el tipo de vehículo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="automóvil">Automóvil</SelectItem>
+                          <SelectItem value="camioneta">Camioneta</SelectItem>
+                          <SelectItem value="motocicleta">Motocicleta</SelectItem>
+                          <SelectItem value="camión">Camión</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {showTraction && (
+                  <FormField
+                    control={form.control}
+                    name="traction"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tracción</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona el tipo de tracción" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="delantera">Delantera (FWD)</SelectItem>
+                            <SelectItem value="trasera">Trasera (RWD)</SelectItem>
+                            <SelectItem value="4x4">4x4</SelectItem>
+                            <SelectItem value="awd">AWD (Tracción Integral)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {!editingVehicle && (
                   <FormField
